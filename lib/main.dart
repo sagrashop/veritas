@@ -264,6 +264,7 @@ class _AuthScreenState extends State {
 }
 
 // ==================== SCHERMATA BACHECA (FEED) ====================
+// ==================== SCHERMATA BACHECA (FEED) ====================
 class FeedScreen extends StatefulWidget {
   final String userEmail;
   final String userNickname;
@@ -376,7 +377,6 @@ class _FeedScreenState extends State {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
-              // Box Creazione Post con ampio spazio bianco pulito
               Card(
                 color: const Color(0xFF1E293B),
                 margin: const EdgeInsets.all(12.0),
@@ -423,7 +423,6 @@ class _FeedScreenState extends State {
                   ),
                 ),
               ),
-              // Lista Post visibili a tutti gli utenti dalla bacheca
               Expanded(
                 child: isLoading
                     ? const Center(
@@ -474,7 +473,6 @@ class _FeedScreenState extends State {
                                         ],
                                       ),
                                       const SizedBox(height: 12),
-                                      // Spazio bianco interno o testo leggibile per i contenuti condivisi
                                       Container(
                                         width: double.infinity,
                                         padding: const EdgeInsets.all(12),
