@@ -16,8 +16,7 @@ class VeritasApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        scaffoldBackgroundColor:
-            const Color(0xFFF0F2F5), // Sfondo pulito stile social
+        scaffoldBackgroundColor: const Color(0xFFF0F2F5),
       ),
       home: const AuthScreen(),
     );
@@ -38,7 +37,6 @@ class _AuthScreenState extends State {
   bool isLogin = true;
   bool isLoading = false;
 
-  // URL ufficiale del backend online su Render
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
 
   Future _submit() async {
@@ -54,7 +52,7 @@ class _AuthScreenState extends State {
 
     setState(() => isLoading = true);
 
-    final endpoint = isLogin ? "\(baseUrl/login" : "\)baseUrl/register";
+    final endpoint = isLogin ? "(baseUrl/login" : ")baseUrl/register";
 
     try {
       final response = await http.post(
@@ -124,7 +122,7 @@ class _AuthScreenState extends State {
                       style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1877F2), // Blu Facebook
+                        color: Color(0xFF1877F2),
                         letterSpacing: -1,
                       ),
                     ),
@@ -219,7 +217,7 @@ class FeedScreen extends StatefulWidget {
   State createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State {
+class _FeedScreenState extends State<FeedScreen> {
   final TextEditingController _postController = TextEditingController();
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   List posts = [];
@@ -258,7 +256,7 @@ class _FeedScreenState extends State {
           "authorNickname": widget.userNickname,
           "authorImage": widget.userImage,
           "content": content,
-          "media": "", // Eventuale supporto foto futuro
+          "media": "",
         }),
       );
 
@@ -267,9 +265,11 @@ class _FeedScreenState extends State {
         _fetchPosts();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Errore nella pubblicazione del post")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Errore nella pubblicazione del post")),
+        );
+      }
     }
   }
 
@@ -312,7 +312,6 @@ class _FeedScreenState extends State {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
-              // Box Creazione Post
               Card(
                 margin: const EdgeInsets.all(12.0),
                 shape: RoundedRectangleBorder(
@@ -347,7 +346,6 @@ class _FeedScreenState extends State {
                   ),
                 ),
               ),
-              // Lista Post
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
