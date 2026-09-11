@@ -12,29 +12,12 @@ class VeritasApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Veritasocial',
+      title: 'Veritas',
       debugShowCheckedModeBanner: false,
-      // Stile grafico premium: Blu Notte e Oro Elegante
       theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Blu Notte Profondo
-        primaryColor: const Color(0xFFD4AF37), // Oro Elegante
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD4AF37),
-          secondary: Color(0xFFD4AF37),
-          surface: Color(0xFF1E293B),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0F172A),
-          elevation: 0,
-          centerTitle: true,
-          titleTextStyle: TextStyle(
-            color: Color(0xFFD4AF37),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor:
+            const Color(0xFFF0F2F5), // Sfondo pulito stile social
       ),
       home: const AuthScreen(),
     );
@@ -55,7 +38,7 @@ class _AuthScreenState extends State {
   bool isLogin = true;
   bool isLoading = false;
 
-  // URL ufficiale del backend online su Render (Connessione invariata)
+  // URL ufficiale del backend online su Render
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
 
   Future _submit() async {
@@ -63,8 +46,9 @@ class _AuthScreenState extends State {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Compila tutti i campi")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Compila tutti i campi")),
+      );
       return;
     }
 
@@ -99,10 +83,8 @@ class _AuthScreenState extends State {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "Registrazione completata! Ora puoi effettuare l'accesso.",
-              ),
-            ),
+                content: Text(
+                    "Registrazione completata! Ora puoi effettuare l'accesso.")),
           );
           setState(() => isLogin = true);
         }
@@ -112,8 +94,9 @@ class _AuthScreenState extends State {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Errore: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Errore: $e")),
+      );
     } finally {
       setState(() => isLoading = false);
     }
@@ -121,149 +104,104 @@ class _AuthScreenState extends State {
 
   @override
   Widget build(BuildContext context) {
-    final bool isWideScreen = MediaQuery.of(context).size.width > 800;
-
     return Scaffold(
-      body: Row(
-        children: [
-          // Banner visivo con la seconda foto (visibile su schermi larghi)
-          if (isWideScreen)
-            Expanded(
-              flex: 1,
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/images/welcome_banner.jpeg'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-
-          // Form di autenticazione con sfondo bianco pulito e dettagli oro/blu
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.white,
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo principale (Prima foto)
-                        Center(
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            height: 80,
-                            width: 80,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Veritasocial",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          isLogin
-                              ? "Il Social Network Reale"
-                              : "Crea un nuovo account",
-                          style:
-                              const TextStyle(color: Colors.grey, fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        TextField(
-                          controller: _emailController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
-                            labelText: "Email",
-                            labelStyle: const TextStyle(color: Colors.grey),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
-                            labelText: "Password",
-                            labelStyle: const TextStyle(color: Colors.grey),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD4AF37), // Oro
-                              foregroundColor:
-                                  const Color(0xFF0F172A), // Testo scuro
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: isLoading ? null : _submit,
-                            child: isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Color(0xFF0F172A),
-                                  )
-                                : Text(
-                                    isLogin ? "Accedi" : "Registrati",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => setState(() => isLogin = !isLogin),
-                          child: Text(
-                            isLogin
-                                ? "Non hai un account? Registrati"
-                                : "Hai già un account? Accedi",
-                            style: const TextStyle(color: Color(0xFF0F172A)),
-                          ),
-                        ),
-                      ],
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "veritas",
+                      style: TextStyle(
+                        fontSize: 38,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1877F2), // Blu Facebook
+                        letterSpacing: -1,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isLogin
+                          ? "Connettiti con il mondo su Veritas"
+                          : "Crea un nuovo account",
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1877F2),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: isLoading ? null : _submit,
+                        child: isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : Text(
+                                isLogin ? "Accedi" : "Registrati",
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => setState(() => isLogin = !isLogin),
+                      child: Text(
+                        isLogin
+                            ? "Non hai un account? Registrati"
+                            : "Hai già un account? Accedi",
+                        style: const TextStyle(color: Color(0xFF1877F2)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ==================== SCHERMATA BACHECA (FEED) ====================
 // ==================== SCHERMATA BACHECA (FEED) ====================
 class FeedScreen extends StatefulWidget {
   final String userEmail;
@@ -320,7 +258,7 @@ class _FeedScreenState extends State {
           "authorNickname": widget.userNickname,
           "authorImage": widget.userImage,
           "content": content,
-          "media": "",
+          "media": "", // Eventuale supporto foto futuro
         }),
       );
 
@@ -340,14 +278,13 @@ class _FeedScreenState extends State {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "veritasocial",
+          "veritas",
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            letterSpacing: -1,
-            color: Color(0xFFD4AF37),
-          ),
+              fontWeight: FontWeight.bold,
+              letterSpacing: -1,
+              color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1877F2),
         actions: [
           Center(
             child: Padding(
@@ -355,14 +292,12 @@ class _FeedScreenState extends State {
               child: Text(
                 widget.userNickname,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+                    color: Colors.white, fontWeight: FontWeight.w600),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFD4AF37)),
+            icon: const Icon(Icons.logout),
             onPressed: () {
               Navigator.pushReplacement(
                 context,
@@ -377,45 +312,34 @@ class _FeedScreenState extends State {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
+              // Box Creazione Post
               Card(
-                color: const Color(0xFF1E293B),
                 margin: const EdgeInsets.all(12.0),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(8)),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextField(
-                          controller: _postController,
-                          maxLines: 3,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: const InputDecoration(
-                            hintText: "A cosa stai pensando?",
-                            hintStyle: TextStyle(color: Colors.grey),
-                            border: InputBorder.none,
-                          ),
+                      TextField(
+                        controller: _postController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          hintText: "A cosa stai pensando?",
+                          border: InputBorder.none,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD4AF37),
-                              foregroundColor: const Color(0xFF0F172A),
+                              backgroundColor: const Color(0xFF1877F2),
+                              foregroundColor: Colors.white,
                             ),
                             onPressed: _createPost,
-                            child: const Text("Pubblica",
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text("Pubblica"),
                           ),
                         ],
                       ),
@@ -423,29 +347,22 @@ class _FeedScreenState extends State {
                   ),
                 ),
               ),
+              // Lista Post
               Expanded(
                 child: isLoading
-                    ? const Center(
-                        child:
-                            CircularProgressIndicator(color: Color(0xFFD4AF37)))
+                    ? const Center(child: CircularProgressIndicator())
                     : posts.isEmpty
                         ? const Center(
-                            child: Text("Nessun post ancora. Scrivi il primo!",
-                                style: TextStyle(color: Colors.grey)),
-                          )
+                            child: Text("Nessun post ancora. Scrivi il primo!"))
                         : ListView.builder(
                             itemCount: posts.length,
                             itemBuilder: (context, index) {
                               final post = posts[index];
                               return Card(
-                                color: const Color(0xFF1E293B),
                                 margin: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
+                                    horizontal: 12, vertical: 6),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                    borderRadius: BorderRadius.circular(8)),
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
@@ -455,38 +372,23 @@ class _FeedScreenState extends State {
                                       Row(
                                         children: [
                                           const CircleAvatar(
-                                            backgroundColor: Color(0xFFD4AF37),
-                                            child: Icon(
-                                              Icons.person,
-                                              color: Color(0xFF0F172A),
-                                            ),
+                                            backgroundColor: Color(0xFF1877F2),
+                                            child: Icon(Icons.person,
+                                                color: Colors.white),
                                           ),
                                           const SizedBox(width: 10),
                                           Text(
                                             post["authorNickname"] ?? "Utente",
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color: Colors.white,
-                                            ),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15),
                                           ),
                                         ],
                                       ),
                                       const SizedBox(height: 12),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          post["content"] ?? "",
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black87),
-                                        ),
+                                      Text(
+                                        post["content"] ?? "",
+                                        style: const TextStyle(fontSize: 16),
                                       ),
                                     ],
                                   ),
