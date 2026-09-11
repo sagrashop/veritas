@@ -68,11 +68,17 @@ class _AuthScreenState extends State<AuthScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (isLogin) {
-          // Passa alla bacheca passando l'email dell'utente
+          String nickname = data["nickname"] ?? email.split("@")[0];
+          String profileImage = data["profileImage"] ?? "";
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => FeedScreen(userEmail: email),
+              builder: (context) => FeedScreen(
+                userEmail: email,
+                userNickname: nickname,
+                userImage: profileImage,
+              ),
             ),
           );
         } else {
@@ -208,7 +214,15 @@ class _AuthScreenState extends State<AuthScreen> {
 // ==================== SCHERMATA BACHECA (FEED) ====================
 class FeedScreen extends StatefulWidget {
   final String userEmail;
-  const FeedScreen({super.key, required this.userEmail});
+  final String userNickname;
+  final String userImage;
+
+  const FeedScreen({
+    super.key,
+    required this.userEmail,
+    required this.userNickname,
+    required this.userImage,
+  });
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -226,7 +240,6 @@ class _FeedScreenState extends State<FeedScreen> {
     _fetchPosts();
   }
 
-  // Funzione per scaricare i post dal server
   Future<void> _fetchPosts() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/posts"));
@@ -241,7 +254,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  // Funzione per pubblicare un nuovo post
   Future<void> _createPost() async {
     final content = _postController.text.trim();
     if (content.isEmpty) return;
@@ -250,12 +262,18 @@ class _FeedScreenState extends State<FeedScreen> {
       final response = await http.post(
         Uri.parse("$baseUrl/posts"),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"author": widget.userEmail, "content": content}),
+        body: jsonEncode({
+          "authorEmail": widget.userEmail,
+          "authorNickname": widget.userNickname,
+          "authorImage": widget.userImage,
+          "content": content,
+          "media": "", // Eventuale supporto foto futuro
+        }),
       );
 
       if (response.statusCode == 201) {
         _postController.clear();
-        _fetchPosts(); // Aggiorna la bacheca ricaricando i post
+        _fetchPosts();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -278,6 +296,18 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
         backgroundColor: const Color(0xFF1877F2),
         actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                widget.userNickname,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -294,7 +324,7 @@ class _FeedScreenState extends State<FeedScreen> {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
-              // Box per creare un nuovo post
+              // Box Creazione Post
               Card(
                 margin: const EdgeInsets.all(12.0),
                 shape: RoundedRectangleBorder(
@@ -330,7 +360,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                 ),
               ),
-              // Lista dei post in tempo reale
+              // Lista Post
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -355,14 +385,26 @@ class _FeedScreenState extends State<FeedScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    post["author"] ?? "Utente",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
+                                  Row(
+                                    children: [
+                                      const CircleAvatar(
+                                        backgroundColor: Color(0xFF1877F2),
+                                        child: Icon(
+                                          Icons.person,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        post["authorNickname"] ?? "Utente",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 12),
                                   Text(
                                     post["content"] ?? "",
                                     style: const TextStyle(fontSize: 16),
