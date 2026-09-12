@@ -58,7 +58,12 @@ class _LoginScreenState extends State {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) return;
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Inserisci email e password")),
+      );
+      return;
+    }
 
     setState(() => isLoading = true);
 
@@ -70,25 +75,27 @@ class _LoginScreenState extends State {
       );
 
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FeedScreen(
-            userEmail: email,
-            userNickname: email.split('@')[0],
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FeedScreen(
+              userEmail: email,
+              userNickname: data['nickname'] ?? email.split('@')[0],
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email o password non valide")),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FeedScreen(
-            userEmail: email,
-            userNickname: email.split('@')[0],
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Errore di connessione al server")),
       );
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -254,7 +261,12 @@ class _RegisterScreenState extends State {
     final confirmPassword = _confirmPasswordController.text.trim();
     final name = _nameController.text.trim();
 
-    if (email.isEmpty || password.isEmpty || name.isEmpty) return;
+    if (email.isEmpty || password.isEmpty || name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Compila tutti i campi")),
+      );
+      return;
+    }
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Le password non coincidono")),
@@ -266,31 +278,31 @@ class _RegisterScreenState extends State {
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/login"),
+        Uri.parse("$baseUrl/register"),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"email": email, "password": password, "name": name}),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FeedScreen(
-            userEmail: email,
-            userNickname: name,
-          ),
-        ),
-      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Registrazione completata! Ora puoi accedere.")),
+        );
+        Navigator.pop(context);
+      } else {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text(data['error'] ?? "Errore durante la registrazione")),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FeedScreen(
-            userEmail: email,
-            userNickname: name,
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Errore di connessione al server")),
       );
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -619,6 +631,8 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
+
   String bio = "La strada è la migliore scuola della vita";
   String citta = "Catania";
   String lavoro = "Imprenditore";
@@ -631,6 +645,78 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final List<Map<String, dynamic>> bachecaAttivita = [];
 
   final ImagePicker _picker = ImagePicker();
+  bool isLoadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  // 1. Scarica tutti i dati da MongoDB all'apertura del profilo
+  Future _fetchUserProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse("\(baseUrl/user/profile?email=\){widget.userEmail}"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          profileImagePath =
+              (data['profileImage'] != null && data['profileImage'] != "")
+                  ? data['profileImage']
+                  : null;
+          coverImagePath =
+              (data['coverImage'] != null && data['coverImage'] != "")
+                  ? data['coverImage']
+                  : null;
+          bio = data['bio'] ?? bio;
+          citta = data['citta'] ?? citta;
+          lavoro = data['lavoro'] ?? lavoro;
+
+          if (data['userPhotos'] != null) {
+            userPhotos.clear();
+            userPhotos.addAll(List.from(data['userPhotos']));
+          }
+          if (data['bachecaAttivita'] != null) {
+            bachecaAttivita.clear();
+            bachecaAttivita.addAll(
+              List<Map<String, dynamic>>.from(data['bachecaAttivita']),
+            );
+          }
+          isLoadingProfile = false;
+        });
+      } else {
+        setState(() => isLoadingProfile = false);
+      }
+    } catch (e) {
+      setState(() => isLoadingProfile = false);
+    }
+  }
+
+  // 2. Invia e salva TUTTO su MongoDB
+  Future _salvaTuttoSuMongo() async {
+    try {
+      await http.put(
+        Uri.parse("$baseUrl/user/profile"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": widget.userEmail,
+          "nickname": widget.userNickname,
+          "profileImage": profileImagePath ?? "",
+          "coverImage": coverImagePath ?? "",
+          "bio": bio,
+          "citta": citta,
+          "lavoro": lavoro,
+          "userPhotos": userPhotos,
+          "bachecaAttivita": bachecaAttivita,
+        }),
+      );
+    } catch (e) {
+      print("Errore di sincronizzazione con Mongo: $e");
+    }
+  }
 
   void _modificaDatiProfilo() {
     final TextEditingController bioController =
@@ -674,7 +760,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: const Text("Annulla", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 bio = bioController.text;
                 citta = cittaController.text;
@@ -685,10 +771,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   "data": "Oggi"
                 });
               });
+
+              await _salvaTuttoSuMongo();
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text("Profilo aggiornato con successo!")),
+                    content: Text("Profilo aggiornato e salvato su MongoDB!")),
               );
             },
             child: const Text("Salva"),
@@ -702,25 +791,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        final path = image.path;
+        final bytes = await image.readAsBytes();
+        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+
         setState(() {
-          profileImagePath = path;
-          userPhotos.add(path);
+          profileImagePath = base64Image;
+          userPhotos.add(base64Image);
           bachecaAttivita.insert(0, {
             "tipo": "foto",
             "testo": "Ha aggiornato la foto del profilo.",
-            "media": path,
+            "media": base64Image,
             "data": "Oggi"
           });
         });
+
+        await _salvaTuttoSuMongo();
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("Foto profilo aggiornata con successo!")),
+              content: Text("Foto profilo aggiornata e salvata su MongoDB!")),
         );
       }
     } catch (e) {
-      // Gestione sicura in caso di errore
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Errore durante il caricamento della foto")),
+      );
     }
   }
 
@@ -728,24 +825,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        final path = image.path;
+        final bytes = await image.readAsBytes();
+        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+
         setState(() {
-          coverImagePath = path;
+          coverImagePath = base64Image;
           bachecaAttivita.insert(0, {
             "tipo": "copertina",
             "testo": "Ha aggiornato l'immagine di copertina.",
-            "media": path,
+            "media": base64Image,
             "data": "Oggi"
           });
         });
+
+        await _salvaTuttoSuMongo();
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("Immagine di copertina aggiornata con successo!")),
+              content: Text("Copertina aggiornata e salvata su MongoDB!")),
         );
       }
     } catch (e) {
-      // Gestione sicura in caso di errore
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Errore durante il caricamento della copertina")),
+      );
     }
   }
 
@@ -753,25 +858,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final XFile? image = await _picker.pickImage(source: source);
       if (image != null) {
-        final path = image.path;
+        final bytes = await image.readAsBytes();
+        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+
         setState(() {
-          userPhotos.add(path);
+          userPhotos.add(base64Image);
           bachecaAttivita.insert(0, {
             "tipo": "storia",
             "testo": "Ha pubblicato una nuova storia / foto.",
-            "media": path,
+            "media": base64Image,
             "data": "Oggi"
           });
         });
+
+        await _salvaTuttoSuMongo();
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  "Contenuto aggiunto con successo alla bacheca e alle foto!")),
+              content: Text("Contenuto aggiunto e salvato su MongoDB!")),
         );
       }
     } catch (e) {
-      // Gestione sicura in caso di errore
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Errore durante il caricamento del file")),
+      );
     }
   }
 
@@ -822,13 +933,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildImageWidget(String? path, {BoxFit fit = BoxFit.cover}) {
-    if (path == null) {
+    if (path == null || path.isEmpty) {
       return Container(
         color: const Color(0xFF131B2E),
         child: const Center(child: Icon(Icons.image, color: Colors.grey)),
       );
     }
-    if (kIsWeb) {
+    if (path.startsWith("data:image")) {
+      try {
+        final base64Str = path.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(
+          bytes,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: const Color(0xFF131B2E),
+            child: const Center(child: Icon(Icons.image, color: Colors.grey)),
+          ),
+        );
+      } catch (e) {
+        return Container(
+          color: const Color(0xFF131B2E),
+          child: const Center(child: Icon(Icons.image, color: Colors.grey)),
+        );
+      }
+    }
+    if (kIsWeb || path.startsWith("http")) {
       return Image.network(
         path,
         fit: fit,
@@ -851,6 +981,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoadingProfile) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0B101D),
+          title: Text(widget.userNickname,
+              style: const TextStyle(color: Color(0xFFD4AF37))),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B101D),
@@ -875,34 +1018,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               Container(
                 height: 200,
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  image: coverImagePath != null
-                      ? DecorationImage(
-                          image: kIsWeb
-                              ? NetworkImage(coverImagePath!) as ImageProvider
-                              : FileImage(File(coverImagePath!)),
-                          fit: BoxFit.cover,
-                        )
-                      : const DecorationImage(
-                          image:
-                              AssetImage('assets/images/welcome_banner.jpeg'),
-                          fit: BoxFit.cover,
-                        ),
-                ),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black54,
-                      radius: 18,
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt,
-                            size: 18, color: Color(0xFFD4AF37)),
-                        tooltip: 'Cambia copertina',
-                        onPressed: _cambiaCopertina,
+                child: coverImagePath != null && coverImagePath!.isNotEmpty
+                    ? _buildImageWidget(coverImagePath)
+                    : Image.asset(
+                        'assets/images/welcome_banner.jpeg',
+                        fit: BoxFit.cover,
                       ),
-                    ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  radius: 18,
+                  child: IconButton(
+                    icon: const Icon(Icons.camera_alt,
+                        size: 18, color: Color(0xFFD4AF37)),
+                    tooltip: 'Cambia copertina',
+                    onPressed: _cambiaCopertina,
                   ),
                 ),
               ),
@@ -920,16 +1053,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         child: CircleAvatar(
                           radius: 52,
                           backgroundColor: const Color(0xFF131B2E),
-                          backgroundImage: profileImagePath != null
-                              ? (kIsWeb
-                                  ? NetworkImage(profileImagePath!)
-                                      as ImageProvider
-                                  : FileImage(File(profileImagePath!)))
-                              : null,
-                          child: profileImagePath == null
-                              ? const Icon(Icons.person,
-                                  size: 60, color: Color(0xFFD4AF37))
-                              : null,
+                          child: profileImagePath != null &&
+                                  profileImagePath!.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(52),
+                                  child: SizedBox.expand(
+                                    child: _buildImageWidget(profileImagePath),
+                                  ),
+                                )
+                              : const Icon(Icons.person,
+                                  size: 60, color: Color(0xFFD4AF37)),
                         ),
                       ),
                     ),
@@ -1030,7 +1163,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Dettagli personali posizionati subito sotto i pulsanti
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(16),
@@ -1180,7 +1312,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     style: const TextStyle(
                                         color: Colors.white70, fontSize: 14),
                                   ),
-                                  if (item['media'] != null) ...[
+                                  if (item['media'] != null &&
+                                      item['media'] != "") ...[
                                     const SizedBox(height: 10),
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),

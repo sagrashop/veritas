@@ -8,11 +8,11 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(cors());
 
-// Connessione a MongoDB Atlas (sostituisci con la tua stringa)
+// Connessione a MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sagrashopcatania_db_user:852123max@veritas.hswxfes.mongodb.net/?appName=Veritas"
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("Connesso a MongoDB con successo!"))
+  .then(() => console.log("Connesso a MongoDB con successo![cite: 3]"))
   .catch(err => console.error("Errore di connessione a MongoDB:", err));
 
 // Schema Unificato Utente e Profilo
@@ -20,18 +20,24 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   nickname: { type: String, default: "" },
-  profileImage: { type: String, default: "" } // Immagine in Base64
+  profileImage: { type: String, default: "" }, 
+  coverImage: { type: String, default: "" },   
+  bio: { type: String, default: "La strada è la migliore scuola della vita" },
+  citta: { type: String, default: "Catania" },
+  lavoro: { type: String, default: "Imprenditore" },
+  userPhotos: { type: [String], default: [] }, 
+  bachecaAttivita: { type: Array, default: [] } 
 });
 
 const User = mongoose.model("User", userSchema);
 
-// Schema per i Post della Bacheca (Stile Facebook)
+// Schema per i Post della Bacheca Pubblica
 const postSchema = new mongoose.Schema({
   authorEmail: String,
   authorNickname: String,
   authorImage: String,
   content: String,
-  media: { type: String, default: "" }, // Eventuale foto allegata al post
+  media: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -70,24 +76,46 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// 3. Aggiornamento Profilo (Nickname e Foto)
+// 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 app.put("/api/user/profile", async (req, res) => {
   try {
-    const { email, nickname, profileImage } = req.body;
+    const { email, nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita } = req.body;
+    
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "Utente non trovato" });
+
+    // Sincronizzazione: se ci sono nuove attività o foto, le salviamo anche nei Post pubblici
+    if (bachecaAttivita && bachecaAttivita.length > user.bachecaAttivita.length) {
+      const newActivities = bachecaAttivita.slice(user.bachecaAttivita.length);
+      for (const act of newActivities) {
+        const content = typeof act === 'string' ? act : (act.content || "Aggiornamento profilo");
+        const media = typeof act === 'object' && act.media ? act.media : "";
+        
+        const newPost = new Post({
+          authorEmail: email,
+          authorNickname: nickname || user.nickname,
+          authorImage: profileImage || user.profileImage,
+          content: content,
+          media: media
+        });
+        await newPost.save();
+      }
+    }
+
     const updatedUser = await User.findOneAndUpdate(
       { email },
-      { nickname, profileImage },
+      { nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita },
       { new: true }
     );
-    if (!updatedUser) return res.status(404).json({ error: "Utente non trovato" });
 
-    res.status(200).json({ message: "Profilo aggiornato", user: updatedUser });
+    res.status(200).json({ message: "Profilo aggiornato con successo", user: updatedUser });
   } catch (err) {
+    console.error("Errore aggiornamento profilo:", err);
     res.status(500).json({ error: "Errore del server" });
   }
 });
 
-// 4. Lettura Profilo
+// 4. Lettura Profilo da MongoDB
 app.get("/api/user/profile", async (req, res) => {
   try {
     const { email } = req.query;
@@ -96,7 +124,13 @@ app.get("/api/user/profile", async (req, res) => {
 
     res.status(200).json({
       nickname: user.nickname || "",
-      profileImage: user.profileImage || ""
+      profileImage: user.profileImage || "",
+      coverImage: user.coverImage || "",
+      bio: user.bio || "La strada è la migliore scuola della vita",
+      citta: user.citta || "Catania",
+      lavoro: user.lavoro || "Imprenditore",
+      userPhotos: user.userPhotos || [],
+      bachecaAttivita: user.bachecaAttivita || []
     });
   } catch (err) {
     res.status(500).json({ error: "Errore del server" });
