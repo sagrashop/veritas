@@ -87,7 +87,7 @@ app.put("/api/user/profile", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "Utente non trovato" });
 
-    // Sincronizzazione: se ci sono nuove attività o foto, le salviamo anche nei Post pubblici
+    // Sincronizzazione bacheca (lascia com'è se c'era)
     if (bachecaAttivita && bachecaAttivita.length > user.bachecaAttivita.length) {
       const newActivities = bachecaAttivita.slice(user.bachecaAttivita.length);
       for (const act of newActivities) {
@@ -105,10 +105,22 @@ app.put("/api/user/profile", async (req, res) => {
       }
     }
 
+    // AGGIORNAMENTO FORZATO CON $set PER CREare I CAMPI SE MANCANO
     const updatedUser = await User.findOneAndUpdate(
       { email },
-      { nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita },
-      { new: true }
+      { 
+        $set: { 
+          nickname: nickname !== undefined ? nickname : user.nickname,
+          profileImage: profileImage !== undefined ? profileImage : user.profileImage,
+          coverImage: coverImage !== undefined ? coverImage : user.coverImage,
+          bio: bio !== undefined ? bio : user.bio,
+          citta: citta !== undefined ? citta : user.citta,
+          lavoro: lavoro !== undefined ? lavoro : user.lavoro,
+          userPhotos: userPhotos !== undefined ? userPhotos : user.userPhotos,
+          bachecaAttivita: bachecaAttivita !== undefined ? bachecaAttivita : user.bachecaAttivita
+        }
+      },
+      { new: true, upsert: true }
     );
 
     res.status(200).json({ message: "Profilo aggiornato con successo", user: updatedUser });
