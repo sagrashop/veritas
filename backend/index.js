@@ -4,9 +4,12 @@ const cors = require("cors");
 
 const app = express();
 
-// Middleware configurati per gestire immagini e dati JSON ampi
-app.use(express.json({ limit: "50mb" }));
+// ATTIVA CORS (Questo è ciò che bloccava il salvataggio delle immagini e dei dati)
 app.use(cors());
+
+// Middleware configurati per gestire immagini e dati JSON ampi
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Connessione a MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sagrashopcatania_db_user:852123max@veritas.hswxfes.mongodb.net/?appName=Veritas"

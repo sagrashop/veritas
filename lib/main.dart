@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-void main() {
-  runApp(const VeritasApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final String? savedEmail = prefs.getString('userEmail');
+  runApp(VeritasApp(initialEmail: savedEmail));
 }
 
 class VeritasApp extends StatelessWidget {
-  const VeritasApp({super.key});
+  final String? initialEmail;
+
+  const VeritasApp({super.key, this.initialEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +41,12 @@ class VeritasApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),
+      home: initialEmail != null
+          ? FeedScreen(
+              userEmail: initialEmail!,
+              userNickname: initialEmail!.split('@')[0],
+            )
+          : const LoginScreen(),
     );
   }
 }
@@ -78,6 +89,9 @@ class _LoginScreenState extends State {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userEmail',
+            _emailController.text.trim()); // Salva l'email corretta
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -445,7 +459,10 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  void _logout() {
+  Future _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userEmail');
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -460,7 +477,7 @@ class _FeedScreenState extends State<FeedScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
+      builder: (modalContext) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
           left: 16,
@@ -468,8 +485,10 @@ class _FeedScreenState extends State<FeedScreen> {
           top: 16,
         ),
         child: CreatePostSheet(
-          userEmail: widget.userEmail,
-          userNickname: widget.userNickname,
+          userEmail:
+              widget.userEmail, // Usa direttamente widget. del FeedScreenState
+          userNickname: widget
+              .userNickname, // Usa direttamente widget. del FeedScreenState
           onPostCreated: _fetchPosts,
         ),
       ),
@@ -478,139 +497,144 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B101D),
-        elevation: 1,
-        title: Row(
-          children: [
-            Image.asset('assets/images/logo.png', width: 32, height: 32),
-            const SizedBox(width: 10),
-            const Text('Veritasocial',
-                style: TextStyle(
-                    color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFF0B101D),
+          elevation: 1,
+          title: Row(
+            children: [
+              Image.asset('assets/images/logo.png', width: 32, height: 32),
+              const SizedBox(width: 10),
+              const Text('Veritasocial',
+                  style: TextStyle(
+                      color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.person, color: Color(0xFFD4AF37)),
+              tooltip: 'Il mio Profilo',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserProfileScreen(
+                      userEmail: widget.userEmail,
+                      userNickname: widget.userNickname,
+                    ),
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout, color: Color(0xFFD4AF37)),
+              tooltip: 'Esci',
+              onPressed: _logout,
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person, color: Color(0xFFD4AF37)),
-            tooltip: 'Il mio Profilo',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UserProfileScreen(
-                    userEmail: widget.userEmail,
-                    userNickname: widget.userNickname,
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFD4AF37)),
-            tooltip: 'Esci',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
-          : ListView(
-              children: [
-                Container(
-                  margin: const EdgeInsets.all(12),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF131B2E),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Color(0xFFD4AF37),
-                        child:
-                            Icon(Icons.person, color: Colors.black, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _openCreatePostModal,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0B101D),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child: const Text(
-                              "A cosa stai pensando?",
-                              style: TextStyle(
-                                  color: Colors.white54, fontSize: 14),
+        body: isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+            : ListView(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF131B2E),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Color(0xFFD4AF37),
+                          child:
+                              Icon(Icons.person, color: Colors.black, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _openCreatePostModal,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0B101D),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: const Text(
+                                "A cosa stai pensando?",
+                                style: TextStyle(
+                                    color: Colors.white54, fontSize: 14),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(color: Colors.white12, thickness: 1),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
-                    final post = posts[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF131B2E),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color:
-                                const Color(0xFFD4AF37).withValues(alpha: 0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Color(0xFFD4AF37),
-                                child: Icon(Icons.person,
-                                    color: Colors.black, size: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                post['authorNickname'] ?? 'Utente',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            post['content'] ?? '',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 15),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
+                  const Divider(color: Colors.white12, thickness: 1),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: posts.length,
+                    itemBuilder: (context, index) {
+                      final post = posts[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF131B2E),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFD4AF37)
+                                  .withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Color(0xFFD4AF37),
+                                  child: Icon(Icons.person,
+                                      color: Colors.black, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  post['authorNickname'] ?? 'Utente',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              post['content'] ?? '',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 15),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -627,7 +651,7 @@ class UserProfileScreen extends StatefulWidget {
   });
 
   @override
-  State createState() => _UserProfileScreenState();
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
@@ -641,7 +665,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? profileImagePath;
   String? coverImagePath;
 
-  final List<String> userPhotos = [];
+  final List userPhotos = [];
   final List<Map<String, dynamic>> bachecaAttivita = [];
 
   final ImagePicker _picker = ImagePicker();
