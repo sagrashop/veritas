@@ -436,11 +436,15 @@ class _FeedScreenState extends State<FeedScreen> {
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   List posts = [];
   bool isLoading = true;
+  String? profileImage;
+  String? coverImage;
+  List userPhotos = [];
 
   @override
   void initState() {
     super.initState();
     _fetchPosts();
+    _caricaDatiUtenteDaServer();
   }
 
   Future _fetchPosts() async {
@@ -456,6 +460,26 @@ class _FeedScreenState extends State<FeedScreen> {
       }
     } catch (e) {
       setState(() => isLoading = false);
+    }
+  }
+
+  // E incolla questa funzione subito sotto a _fetchPosts()
+  // Funzione per caricare i dati del profilo da MongoDB all'avvio
+  Future _caricaDatiUtenteDaServer() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/user/profile?email=${widget.userEmail}"),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          profileImage = data['profileImage'] ?? "";
+          coverImage = data['coverImage'] ?? "";
+          userPhotos = List.from(data['userPhotos'] ?? []);
+        });
+      }
+    } catch (e) {
+      print("Errore caricamento profilo: $e");
     }
   }
 
@@ -662,8 +686,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String lavoro = "Imprenditore";
   String tabSelezionata = "Foto";
 
-  String? profileImagePath;
-  String? coverImagePath;
+  String? profileImage;
+  String? coverImage;
 
   final List userPhotos = [];
   final List<Map<String, dynamic>> bachecaAttivita = [];
@@ -681,20 +705,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future _fetchUserProfile() async {
     try {
       final response = await http.get(
-        Uri.parse("\(baseUrl/user/profile?email=\){widget.userEmail}"),
+        Uri.parse("$baseUrl/user/profile?email=${widget.userEmail}"),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          profileImagePath =
+          profileImage =
               (data['profileImage'] != null && data['profileImage'] != "")
                   ? data['profileImage']
                   : null;
-          coverImagePath =
-              (data['coverImage'] != null && data['coverImage'] != "")
-                  ? data['coverImage']
-                  : null;
+          coverImage = (data['coverImage'] != null && data['coverImage'] != "")
+              ? data['coverImage']
+              : null;
           bio = data['bio'] ?? bio;
           citta = data['citta'] ?? citta;
           lavoro = data['lavoro'] ?? lavoro;
@@ -728,8 +751,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         body: jsonEncode({
           "email": widget.userEmail,
           "nickname": widget.userNickname,
-          "profileImage": profileImagePath ?? "",
-          "coverImage": coverImagePath ?? "",
+          "profileImage": profileImage ?? "",
+          "coverImage": coverImage ?? "",
           "bio": bio,
           "citta": citta,
           "lavoro": lavoro,
@@ -819,7 +842,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
 
         setState(() {
-          profileImagePath = base64Image;
+          profileImage = base64Image;
           userPhotos.add(base64Image);
           bachecaAttivita.insert(0, {
             "tipo": "foto",
@@ -853,7 +876,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
 
         setState(() {
-          coverImagePath = base64Image;
+          coverImage = base64Image;
           bachecaAttivita.insert(0, {
             "tipo": "copertina",
             "testo": "Ha aggiornato l'immagine di copertina.",
@@ -1042,8 +1065,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               Container(
                 height: 200,
                 width: double.infinity,
-                child: coverImagePath != null && coverImagePath!.isNotEmpty
-                    ? _buildImageWidget(coverImagePath)
+                child: coverImage != null && coverImage!.isNotEmpty
+                    ? _buildImageWidget(coverImage)
                     : Image.asset(
                         'assets/images/welcome_banner.jpeg',
                         fit: BoxFit.cover,
@@ -1077,16 +1100,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         child: CircleAvatar(
                           radius: 52,
                           backgroundColor: const Color(0xFF131B2E),
-                          child: profileImagePath != null &&
-                                  profileImagePath!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(52),
-                                  child: SizedBox.expand(
-                                    child: _buildImageWidget(profileImagePath),
-                                  ),
-                                )
-                              : const Icon(Icons.person,
-                                  size: 60, color: Color(0xFFD4AF37)),
+                          child:
+                              profileImage != null && profileImage!.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(52),
+                                      child: SizedBox.expand(
+                                        child: _buildImageWidget(profileImage),
+                                      ),
+                                    )
+                                  : const Icon(Icons.person,
+                                      size: 60, color: Color(0xFFD4AF37)),
                         ),
                       ),
                     ),
