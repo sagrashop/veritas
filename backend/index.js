@@ -85,25 +85,31 @@ app.put("/api/user/profile", async (req, res) => {
     const { email, nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita } = req.body;
     
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "Utente non trovato" });
+    // Sincronizzazione bacheca
+if (bachecaAttivita && bachecaAttivita.length > user.bachecaAttivita.length) {
+  const newActivities = bachecaAttivita.slice(user.bachecaAttivita.length);
+  for (const act of newActivities) {
+    let content = "";
+    let media = "";
 
-    // Sincronizzazione bacheca (lascia com'è se c'era)
-    if (bachecaAttivita && bachecaAttivita.length > user.bachecaAttivita.length) {
-      const newActivities = bachecaAttivita.slice(user.bachecaAttivita.length);
-      for (const act of newActivities) {
-        const content = typeof act === 'string' ? act : (act.content || "Aggiornamento profilo");
-        const media = typeof act === 'object' && act.media ? act.media : "";
-        
-        const newPost = new Post({
-          authorEmail: email,
-          authorNickname: nickname || user.nickname,
-          authorImage: profileImage || user.profileImage,
-          content: content,
-          media: media
-        });
-        await newPost.save();
-      }
+    if (typeof act === 'string') {
+      content = act;
+    } else if (typeof act === 'object' && act !== null) {
+      content = act.content || act.testo || "Aggiornamento profilo";
+      media = act.media || act.image || act.imageUrl || "";
     }
+
+    const newPost = new Post({
+      authorEmail: email,
+      authorNickname: nickname || user.nickname,
+      authorImage: profileImage || user.profileImage,
+      content: content,
+      media: media
+    });
+
+    await newPost.save();
+  }
+}
 
     // AGGIORNAMENTO FORZATO CON $set PER CREare I CAMPI SE MANCANO
     const updatedUser = await User.findOneAndUpdate(

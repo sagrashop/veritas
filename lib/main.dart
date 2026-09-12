@@ -463,6 +463,20 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  Widget _buildImageWidget(String imageData) {
+    if (imageData.startsWith('data:image')) {
+      final base64String = imageData.split(',').last;
+      try {
+        final decodedBytes = base64Decode(base64String);
+        return Image.memory(decodedBytes, fit: BoxFit.cover);
+      } catch (e) {
+        return const Icon(Icons.broken_image);
+      }
+    } else {
+      return Image.network(imageData, fit: BoxFit.cover);
+    }
+  }
+
   // E incolla questa funzione subito sotto a _fetchPosts()
   // Funzione per caricare i dati del profilo da MongoDB all'avvio
   Future _caricaDatiUtenteDaServer() async {
@@ -473,8 +487,13 @@ class _FeedScreenState extends State<FeedScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          profileImage = data['profileImage'] ?? "";
-          coverImage = data['coverImage'] ?? "";
+          profileImage =
+              (data['profileImage'] != null && data['profileImage'] != "")
+                  ? data['profileImage']
+                  : profileImage;
+          coverImage = (data['coverImage'] != null && data['coverImage'] != "")
+              ? data['coverImage']
+              : coverImage;
           userPhotos = List.from(data['userPhotos'] ?? []);
         });
       }
@@ -578,11 +597,22 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 18,
-                          backgroundColor: Color(0xFFD4AF37),
+                          backgroundColor: const Color(0xFFD4AF37),
                           child:
-                              Icon(Icons.person, color: Colors.black, size: 20),
+                              (profileImage != null && profileImage!.isNotEmpty)
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: SizedBox.expand(
+                                        child: _buildImageWidget(profileImage!),
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.person,
+                                      color: Colors.black,
+                                      size: 20,
+                                    ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -630,11 +660,24 @@ class _FeedScreenState extends State<FeedScreen> {
                           children: [
                             Row(
                               children: [
-                                const CircleAvatar(
+                                CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: Color(0xFFD4AF37),
-                                  child: Icon(Icons.person,
-                                      color: Colors.black, size: 20),
+                                  backgroundColor: const Color(0xFFD4AF37),
+                                  child: (profileImage != null &&
+                                          profileImage!.isNotEmpty)
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(18),
+                                          child: SizedBox.expand(
+                                            child: _buildImageWidget(
+                                                profileImage!),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.person,
+                                          color: Colors.black,
+                                          size: 20,
+                                        ),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
@@ -685,6 +728,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String citta = "Catania";
   String lavoro = "Imprenditore";
   String tabSelezionata = "Foto";
+  late String nickname;
 
   String? profileImage;
   String? coverImage;
@@ -698,6 +742,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
+    nickname = widget.userNickname;
     _fetchUserProfile();
   }
 
@@ -721,6 +766,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           bio = data['bio'] ?? bio;
           citta = data['citta'] ?? citta;
           lavoro = data['lavoro'] ?? lavoro;
+          nickname = data['nickname'] ?? widget.userNickname;
 
           if (data['userPhotos'] != null) {
             userPhotos.clear();
@@ -750,7 +796,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": widget.userEmail,
-          "nickname": widget.userNickname,
+          "nickname": nickname,
           "profileImage": profileImage ?? "",
           "coverImage": coverImage ?? "",
           "bio": bio,
@@ -772,6 +818,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         TextEditingController(text: citta);
     final TextEditingController lavoroController =
         TextEditingController(text: lavoro);
+    final TextEditingController nicknameController =
+        TextEditingController(text: nickname);
 
     showDialog(
       context: context,
@@ -783,6 +831,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              TextField(
+                controller: nicknameController,
+                decoration: const InputDecoration(labelText: 'Nickname'),
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: bioController,
                 decoration: const InputDecoration(
@@ -812,6 +865,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 bio = bioController.text;
                 citta = cittaController.text;
                 lavoro = lavoroController.text;
+                nickname = nicknameController.text;
                 bachecaAttivita.insert(0, {
                   "tipo": "aggiornamento",
                   "testo": "Ha aggiornato le informazioni del profilo.",
@@ -877,6 +931,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
         setState(() {
           coverImage = base64Image;
+          userPhotos.add(base64Image);
           bachecaAttivita.insert(0, {
             "tipo": "copertina",
             "testo": "Ha aggiornato l'immagine di copertina.",
@@ -1032,8 +1087,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF0B101D),
-          title: Text(widget.userNickname,
-              style: const TextStyle(color: Color(0xFFD4AF37))),
+          title:
+              Text(nickname, style: const TextStyle(color: Color(0xFFD4AF37))),
         ),
         body: const Center(
           child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
@@ -1135,18 +1190,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           const SizedBox(height: 60),
           Center(
             child: Text(
-              widget.userNickname,
+              nickname,
               style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Center(
-            child: Text(
-              "2474 Follower · 958 seguiti · 4146 post",
-              style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 12),
@@ -1354,11 +1402,54 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
-                                    item['testo'] ?? '',
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 14),
-                                  ),
+                                  (item['media'] != null &&
+                                              item['media']
+                                                  .toString()
+                                                  .isNotEmpty) ||
+                                          (item['image'] != null &&
+                                              item['image']
+                                                  .toString()
+                                                  .isNotEmpty)
+                                      ? ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: SizedBox(
+                                            height: 200,
+                                            width: double.infinity,
+                                            child: _buildImageWidget(
+                                              (item['media'] != null &&
+                                                      item['media']
+                                                          .toString()
+                                                          .isNotEmpty)
+                                                  ? item['media']
+                                                  : item['image'],
+                                            ),
+                                          ),
+                                        )
+                                      : (item['testo'] ==
+                                              "Aggiornamento profilo")
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: SizedBox(
+                                                height: 200,
+                                                width: double.infinity,
+                                                child: Center(
+                                                  child: Text(
+                                                    "Aggiornamento immagine del profilo",
+                                                    style: TextStyle(
+                                                        color: Colors.grey,
+                                                        fontStyle:
+                                                            FontStyle.italic),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : Text(
+                                              item['testo'] ?? '',
+                                              style: const TextStyle(
+                                                  color: Colors.white),
+                                            ),
                                   if (item['media'] != null &&
                                       item['media'] != "") ...[
                                     const SizedBox(height: 10),
