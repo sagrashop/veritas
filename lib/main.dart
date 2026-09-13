@@ -604,11 +604,17 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 18,
-                          backgroundColor: Color(0xFFD4AF37),
-                          child:
-                              Icon(Icons.person, color: Colors.black, size: 20),
+                          backgroundColor: const Color(0xFFFD4AF37),
+                          backgroundImage: (profileImage != null &&
+                                  profileImage!.isNotEmpty)
+                              ? FileImage(File(profileImage!)) as ImageProvider
+                              : null,
+                          child: (profileImage == null || profileImage!.isEmpty)
+                              ? const Icon(Icons.person,
+                                  color: Colors.black, size: 20)
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1095,16 +1101,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B101D),
+        title: Text(
+          nickname, // <--- Aggiungi questa riga qui!
+          style: const TextStyle(color: Color(0xFFFD4AF37)),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFFD4AF37)),
           tooltip: 'Torna al Feed',
           onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          widget.userNickname,
-          style: const TextStyle(
-              color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
-          overflow: TextOverflow.ellipsis,
         ),
       ),
       body: ListView(

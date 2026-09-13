@@ -81,18 +81,17 @@ app.post("/api/login", async (req, res) => {
 
 // 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 // 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
+// 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 app.put("/api/user/profile", async (req, res) => {
   try {
     const { email, nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita } = req.body;
     
     let user = await User.findOne({ email });
+    const oldActivities = (user && user.bachecaAttivita) ? user.bachecaAttivita : [];
 
-    // Se l'utente non esiste nel DB, evitiamo il crash creando un oggetto di sicurezza vuoto
-    const existingActivities = user && user.bachecaAttivita ? user.bachecaAttivita : [];
-
-    // Sincronizzazione bacheca
-    if (bachecaAttivita && bachecaAttivita.length > existingActivities.length) {
-      const newActivities = bachecaAttivita.slice(existingActivities.length);
+    // Sincronizzazione bacheca sicura
+    if (bachecaAttivita && bachecaAttivita.length > oldActivities.length) {
+      const newActivities = bachecaAttivita.slice(oldActivities.length);
       for (const act of newActivities) {
         let content = "";
         let media = "";
@@ -116,19 +115,19 @@ app.put("/api/user/profile", async (req, res) => {
       }
     }
 
-    // AGGIORNAMENTO FORZATO CON $set PER CREare I CAMPI SE MANCANO
+    // Aggiornamento o creazione sicura con upsert
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { 
         $set: { 
-          nickname: nickname !== undefined ? nickname : (user ? user.nickname : ""),
-          profileImage: profileImage !== undefined ? profileImage : (user ? user.profileImage : ""),
-          coverImage: coverImage !== undefined ? coverImage : (user ? user.coverImage : ""),
-          bio: bio !== undefined ? bio : (user ? user.bio : "La strada è la migliore scuola della vita"),
-          citta: citta !== undefined ? citta : (user ? user.citta : "Catania"),
-          lavoro: lavoro !== undefined ? lavoro : (user ? user.lavoro : "Imprenditore"),
-          userPhotos: userPhotos !== undefined ? userPhotos : (user ? user.userPhotos : []),
-          bachecaAttivita: bachecaAttivita !== undefined ? bachecaAttivita : (user ? user.bachecaAttivita : [])
+          nickname: nickname !== undefined ? nickname : (user?.nickname ?? ""),
+          profileImage: profileImage !== undefined ? profileImage : (user?.profileImage ?? ""),
+          coverImage: coverImage !== undefined ? coverImage : (user?.coverImage ?? ""),
+          bio: bio !== undefined ? bio : (user?.bio ?? "La strada è la migliore scuola della vita"),
+          citta: citta !== undefined ? citta : (user?.citta ?? "Catania"),
+          lavoro: lavoro !== undefined ? lavoro : (user?.lavoro ?? "Imprenditore"),
+          userPhotos: userPhotos !== undefined ? userPhotos : (user?.userPhotos ?? []),
+          bachecaAttivita: bachecaAttivita !== undefined ? bachecaAttivita : (user?.bachecaAttivita ?? [])
         }
       },
       { new: true, upsert: true }
@@ -137,7 +136,7 @@ app.put("/api/user/profile", async (req, res) => {
     res.status(200).json({ message: "Profilo aggiornato con successo", user: updatedUser });
   } catch (err) {
     console.error("Errore aggiornamento profilo:", err);
-    res.status(500).json({ error: "Errore del server" });
+    res.status(500).json({ error: err.message });
   }
 });
 
