@@ -936,7 +936,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['imageUrl']; // Restituisce il percorso leggero del file
+        final String relativePath = data['imageUrl'];
+        final String serverRoot = baseUrl.replaceAll('/api', '');
+        return serverRoot +
+            relativePath; // Restituisce il percorso leggero del file
       } else {
         print("Errore caricamento server: ${response.body}");
         return null;

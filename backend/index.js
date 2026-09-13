@@ -11,41 +11,54 @@ if (!fs.existsSync('uploads')) {
 }
 
 const app = express();
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ATTIVA CORS (Questo è ciò che bloccava il salvataggio delle immagini e dei dati)
-app.use(cors());
+// ATTIVA CORS
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.options('*', cors()); // Abilita le richieste preflight per tutte le rotte
 
-// Middleware configurati per gestire immagini e dati JSON ampi
+// Middleware configurati per gestire dati ampi
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-// Configurazione della cartella locale "uploads" per i file fisici
+// Rende la cartella "uploads" accessibile pubblicamente via URL
+// Rende la cartella "uploads" accessibile pubblicamente forzando l'header CORS direttamente nel file server
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+    setHeaders: (res, path, stat) => {
+        res.set('Access-Control-Allow-Origin', '*');
+    }
+}));
+// Configurazione corretta di Multer (mantiene l'estensione originale del file)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 const upload = multer({ storage: storage });
 
-// Rende la cartella "uploads" accessibile pubblicamente via URL
-app.use('/uploads', express.static('uploads'));
-// Rotta per gestire l'upload dei file
+// UNICA ROTTA UFFICIALE per l'upload delle immagini
 app.post('/api/upload-image', upload.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Nessun file caricato' });
         }
-        // Restituisce l'URL relativo del file salvato
+        // Restituisce la chiave esatta che si aspetta Flutter (imageUrl)
         const imageUrl = `/uploads/${req.file.filename}`;
-        res.json({ imageUrl });
+        res.status(200).json({ imageUrl });
     } catch (error) {
+        console.error("Errore upload immagine:", error);
         res.status(500).json({ error: error.message });
     }
-});// Connessione a MongoDB Atlas
+});
+
+// Connessione a MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sagrashopcatania_db_user:852123max@veritas.hswxfes.mongodb.net/?appName=Veritas"
 
 mongoose.connect(MONGO_URI)
@@ -121,7 +134,6 @@ app.put("/api/user/profile", async (req, res) => {
     let user = await User.findOne({ email });
     const oldActivities = (user && user.bachecaAttivita) ? user.bachecaAttivita : [];
 
-    // Sincronizzazione bacheca sicura
     if (bachecaAttivita && bachecaAttivita.length > oldActivities.length) {
       const newActivities = bachecaAttivita.slice(oldActivities.length);
       for (const act of newActivities) {
@@ -147,7 +159,6 @@ app.put("/api/user/profile", async (req, res) => {
       }
     }
 
-    // Aggiornamento o creazione sicura con upsert
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { 
@@ -195,14 +206,14 @@ app.get("/api/user/profile", async (req, res) => {
 });
 
 // 5. Creazione Post (Bacheca)
-app.post("/api/posts", async (req, res) => {
+app.post("/api/posts", async (postReq, postRes) => {
   try {
-    const { authorEmail, authorNickname, authorImage, content, media } = req.body;
+    const { authorEmail, authorNickname, authorImage, content, media } = postReq.body;
     const newPost = new Post({ authorEmail, authorNickname, authorImage, content, media });
     await newPost.save();
-    res.status(201).json(newPost);
+    postRes.status(201).json(newPost);
   } catch (err) {
-    res.status(500).json({ error: "Errore del server" });
+    postRes.status(500).json({ error: "Errore del server" });
   }
 });
 
@@ -213,20 +224,6 @@ app.get("/api/posts", async (req, res) => {
     res.status(200).json(posts);
   } catch (err) {
     res.status(500).json({ error: "Errore del server" });
-  }
-});
-
-// 7. Rotta dedicata per il caricamento file (predisposta per il futuro)
-app.post("/api/upload-image", upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "Nessun file caricato" });
-    }
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.status(200).json({ url: fileUrl });
-  } catch (err) {
-    console.error("Errore upload immagine:", err);
-    res.status(500).json({ error: err.message });
   }
 });
 
