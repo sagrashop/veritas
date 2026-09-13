@@ -80,50 +80,55 @@ app.post("/api/login", async (req, res) => {
 });
 
 // 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
+// 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 app.put("/api/user/profile", async (req, res) => {
   try {
     const { email, nickname, profileImage, coverImage, bio, citta, lavoro, userPhotos, bachecaAttivita } = req.body;
     
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+
+    // Se l'utente non esiste nel DB, evitiamo il crash creando un oggetto di sicurezza vuoto
+    const existingActivities = user && user.bachecaAttivita ? user.bachecaAttivita : [];
+
     // Sincronizzazione bacheca
-if (bachecaAttivita && bachecaAttivita.length > user.bachecaAttivita.length) {
-  const newActivities = bachecaAttivita.slice(user.bachecaAttivita.length);
-  for (const act of newActivities) {
-    let content = "";
-    let media = "";
+    if (bachecaAttivita && bachecaAttivita.length > existingActivities.length) {
+      const newActivities = bachecaAttivita.slice(existingActivities.length);
+      for (const act of newActivities) {
+        let content = "";
+        let media = "";
 
-    if (typeof act === 'string') {
-      content = act;
-    } else if (typeof act === 'object' && act !== null) {
-      content = act.content || act.testo || "Aggiornamento profilo";
-      media = act.media || act.image || act.imageUrl || "";
+        if (typeof act === 'string') {
+          content = act;
+        } else if (typeof act === 'object' && act !== null) {
+          content = act.content || act.testo || "Aggiornamento profilo";
+          media = act.media || act.image || act.imageUrl || "";
+        }
+
+        const newPost = new Post({
+          authorEmail: email,
+          authorNickname: nickname || (user ? user.nickname : email.split("@")[0]),
+          authorImage: profileImage || (user ? user.profileImage : ""),
+          content: content,
+          media: media
+        });
+
+        await newPost.save();
+      }
     }
-
-    const newPost = new Post({
-      authorEmail: email,
-      authorNickname: nickname || user.nickname,
-      authorImage: profileImage || user.profileImage,
-      content: content,
-      media: media
-    });
-
-    await newPost.save();
-  }
-}
 
     // AGGIORNAMENTO FORZATO CON $set PER CREare I CAMPI SE MANCANO
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { 
         $set: { 
-          nickname: nickname !== undefined ? nickname : user.nickname,
-          profileImage: profileImage !== undefined ? profileImage : user.profileImage,
-          coverImage: coverImage !== undefined ? coverImage : user.coverImage,
-          bio: bio !== undefined ? bio : user.bio,
-          citta: citta !== undefined ? citta : user.citta,
-          lavoro: lavoro !== undefined ? lavoro : user.lavoro,
-          userPhotos: userPhotos !== undefined ? userPhotos : user.userPhotos,
-          bachecaAttivita: bachecaAttivita !== undefined ? bachecaAttivita : user.bachecaAttivita
+          nickname: nickname !== undefined ? nickname : (user ? user.nickname : ""),
+          profileImage: profileImage !== undefined ? profileImage : (user ? user.profileImage : ""),
+          coverImage: coverImage !== undefined ? coverImage : (user ? user.coverImage : ""),
+          bio: bio !== undefined ? bio : (user ? user.bio : "La strada è la migliore scuola della vita"),
+          citta: citta !== undefined ? citta : (user ? user.citta : "Catania"),
+          lavoro: lavoro !== undefined ? lavoro : (user ? user.lavoro : "Imprenditore"),
+          userPhotos: userPhotos !== undefined ? userPhotos : (user ? user.userPhotos : []),
+          bachecaAttivita: bachecaAttivita !== undefined ? bachecaAttivita : (user ? user.bachecaAttivita : [])
         }
       },
       { new: true, upsert: true }

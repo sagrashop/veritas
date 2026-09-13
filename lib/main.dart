@@ -449,7 +449,13 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Future _fetchPosts() async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/posts"));
+      final response = await http
+          .get(
+            Uri.parse("$baseUrl/posts"),
+          )
+          .timeout(const Duration(
+              seconds: 40)); // <--- Dà il tempo a Render di accendersi
+
       if (response.statusCode == 200) {
         setState(() {
           posts = jsonDecode(response.body);
@@ -459,6 +465,7 @@ class _FeedScreenState extends State<FeedScreen> {
         setState(() => isLoading = false);
       }
     } catch (e) {
+      print("Errore caricamento post (probabile risveglio server): $e");
       setState(() => isLoading = false);
     }
   }
@@ -597,22 +604,11 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
+                        const CircleAvatar(
                           radius: 18,
-                          backgroundColor: const Color(0xFFD4AF37),
+                          backgroundColor: Color(0xFFD4AF37),
                           child:
-                              (profileImage != null && profileImage!.isNotEmpty)
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: SizedBox.expand(
-                                        child: _buildImageWidget(profileImage!),
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.person,
-                                      color: Colors.black,
-                                      size: 20,
-                                    ),
+                              Icon(Icons.person, color: Colors.black, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1402,54 +1398,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  (item['media'] != null &&
-                                              item['media']
-                                                  .toString()
-                                                  .isNotEmpty) ||
-                                          (item['image'] != null &&
-                                              item['image']
-                                                  .toString()
-                                                  .isNotEmpty)
-                                      ? ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          child: SizedBox(
-                                            height: 200,
-                                            width: double.infinity,
-                                            child: _buildImageWidget(
-                                              (item['media'] != null &&
-                                                      item['media']
-                                                          .toString()
-                                                          .isNotEmpty)
-                                                  ? item['media']
-                                                  : item['image'],
-                                            ),
-                                          ),
-                                        )
-                                      : (item['testo'] ==
-                                              "Aggiornamento profilo")
-                                          ? ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              child: SizedBox(
-                                                height: 200,
-                                                width: double.infinity,
-                                                child: Center(
-                                                  child: Text(
-                                                    "Aggiornamento immagine del profilo",
-                                                    style: TextStyle(
-                                                        color: Colors.grey,
-                                                        fontStyle:
-                                                            FontStyle.italic),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          : Text(
-                                              item['testo'] ?? '',
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                            ),
+                                  Text(
+                                    item['testo'] ?? '',
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 14),
+                                  ),
                                   if (item['media'] != null &&
                                       item['media'] != "") ...[
                                     const SizedBox(height: 10),
