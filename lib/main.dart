@@ -606,10 +606,17 @@ class _FeedScreenState extends State<FeedScreen> {
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: const Color(0xFFFD4AF37),
+                          backgroundColor: const Color(0xFFFFD4AF37),
                           backgroundImage: (profileImage != null &&
                                   profileImage!.isNotEmpty)
-                              ? FileImage(File(profileImage!)) as ImageProvider
+                              ? (profileImage!.startsWith('http')
+                                  ? NetworkImage(profileImage!) as ImageProvider
+                                  : profileImage!.startsWith('data:image')
+                                      ? MemoryImage(base64Decode(
+                                              profileImage!.split(',').last))
+                                          as ImageProvider
+                                      : FileImage(File(profileImage!))
+                                          as ImageProvider)
                               : null,
                           child: (profileImage == null || profileImage!.isEmpty)
                               ? const Icon(Icons.person,

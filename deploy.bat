@@ -5,7 +5,8 @@ call flutter build web --release
 
 echo [2/4] Invio modifiche su GitHub (aggiorna Render)...
 git add .
-git commit -m "Aggiornamento automatico completo"
+for /f %%i in ('git rev-list --count HEAD') do set COMMIT_NUM=%%i
+git commit -m "Aggiornamento automatico n. %COMMIT_NUM%"
 git push origin main
 
 echo [3/4] Caricamento su Vercel...
