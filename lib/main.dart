@@ -589,126 +589,135 @@ class _FeedScreenState extends State<FeedScreen> {
         body: isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
-            : ListView(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.all(12),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF131B2E),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                          color:
-                              const Color(0xFFD4AF37).withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: const Color(0xFFFFD4AF37),
-                          backgroundImage: (profileImage != null &&
-                                  profileImage!.isNotEmpty)
-                              ? (profileImage!.startsWith('http')
-                                  ? NetworkImage(profileImage!) as ImageProvider
-                                  : profileImage!.startsWith('data:image')
-                                      ? MemoryImage(base64Decode(
-                                              profileImage!.split(',').last))
-                                          as ImageProvider
-                                      : FileImage(File(profileImage!))
-                                          as ImageProvider)
-                              : null,
-                          child: (profileImage == null || profileImage!.isEmpty)
-                              ? const Icon(Icons.person,
-                                  color: Colors.black, size: 20)
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _openCreatePostModal,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0B101D),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white24),
-                              ),
-                              child: const Text(
-                                "A cosa stai pensando?",
-                                style: TextStyle(
-                                    color: Colors.white54, fontSize: 14),
+            : RefreshIndicator(
+                onRefresh: () async {
+                  await _fetchPosts(); // Ricarica i post quando trascini verso il basso
+                },
+                child: ListView(
+                  physics:
+                      const AlwaysScrollableScrollPhysics(), // FONDAMENTALE per far partire il refresh
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF131B2E),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                            color:
+                                const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFFFFD4AF37),
+                            backgroundImage: (profileImage != null &&
+                                    profileImage!.isNotEmpty)
+                                ? (profileImage!.startsWith('http')
+                                    ? NetworkImage(profileImage!)
+                                        as ImageProvider
+                                    : profileImage!.startsWith('data:image')
+                                        ? MemoryImage(base64Decode(
+                                                profileImage!.split(',').last))
+                                            as ImageProvider
+                                        : FileImage(File(profileImage!))
+                                            as ImageProvider)
+                                : null,
+                            child:
+                                (profileImage == null || profileImage!.isEmpty)
+                                    ? const Icon(Icons.person,
+                                        color: Colors.black, size: 20)
+                                    : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _openCreatePostModal,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0B101D),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: const Text(
+                                  "A cosa stai pensando?",
+                                  style: TextStyle(
+                                      color: Colors.white54, fontSize: 14),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const Divider(color: Colors.white12, thickness: 1),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: posts.length,
-                    itemBuilder: (context, index) {
-                      final post = posts[index];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF131B2E),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: const Color(0xFFD4AF37)
-                                  .withValues(alpha: 0.2)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: const Color(0xFFD4AF37),
-                                  child: (profileImage != null &&
-                                          profileImage!.isNotEmpty)
-                                      ? ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                          child: SizedBox.expand(
-                                            child: _buildImageWidget(
-                                                profileImage!),
+                    const Divider(color: Colors.white12, thickness: 1),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: posts.length,
+                      itemBuilder: (context, index) {
+                        final post = posts[index];
+                        return Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF131B2E),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: const Color(0xFFD4AF37)
+                                    .withValues(alpha: 0.2)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFD4AF37),
+                                    child: (profileImage != null &&
+                                            profileImage!.isNotEmpty)
+                                        ? ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            child: SizedBox.expand(
+                                              child: _buildImageWidget(
+                                                  profileImage!),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.person,
+                                            color: Colors.black,
+                                            size: 20,
                                           ),
-                                        )
-                                      : const Icon(
-                                          Icons.person,
-                                          color: Colors.black,
-                                          size: 20,
-                                        ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  post['authorNickname'] ?? 'Utente',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              post['content'] ?? '',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 15),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    post['authorNickname'] ?? 'Utente',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                post['content'] ?? '',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
       ),
     );
