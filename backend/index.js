@@ -11,6 +11,7 @@ if (!fs.existsSync('uploads')) {
 }
 
 const app = express();
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ATTIVA CORS (Questo è ciò che bloccava il salvataggio delle immagini e dei dati)
 app.use(cors());
