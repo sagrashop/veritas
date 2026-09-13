@@ -434,11 +434,11 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
-  List posts = [];
+  List<Map<String, dynamic>> posts = [];
   bool isLoading = true;
   String? profileImage;
   String? coverImage;
-  List userPhotos = [];
+  List<Map<String, dynamic>> userPhotos = [];
 
   @override
   void initState() {
@@ -458,7 +458,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
       if (response.statusCode == 200) {
         setState(() {
-          posts = jsonDecode(response.body);
+          posts = List<Map<String, dynamic>>.from(jsonDecode(response.body));
           isLoading = false;
         });
       } else {
@@ -475,12 +475,20 @@ class _FeedScreenState extends State<FeedScreen> {
       final base64String = imageData.split(',').last;
       try {
         final decodedBytes = base64Decode(base64String);
-        return Image.memory(decodedBytes, fit: BoxFit.cover);
+        return Image.memory(
+          decodedBytes,
+          fit: BoxFit.cover,
+          cacheWidth: 300, // Ottimizzazione caricamento leggero
+        );
       } catch (e) {
         return const Icon(Icons.broken_image);
       }
     } else {
-      return Image.network(imageData, fit: BoxFit.cover);
+      return Image.network(
+        imageData,
+        fit: BoxFit.cover,
+        cacheWidth: 300, // Ottimizzazione caricamento leggero
+      );
     }
   }
 
@@ -736,7 +744,7 @@ class UserProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<UserProfileScreen> createState() => _UserProfileScreenState();
+  State createState() => _UserProfileScreenState();
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
@@ -751,8 +759,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? profileImage;
   String? coverImage;
 
-  final List userPhotos = [];
-  final List<Map<String, dynamic>> bachecaAttivita = [];
+  final List<dynamic> userPhotos = [];
+  final List<dynamic> bachecaAttivita = [];
 
   final ImagePicker _picker = ImagePicker();
   bool isLoadingProfile = true;
@@ -906,20 +914,54 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  // Funzione di supporto per caricare qualsiasi immagine tramite MultipartRequest
+  Future _uploadFileToServer(XFile image) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$baseUrl/upload-image"),
+      );
+
+      var bytes = await image.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'image',
+          bytes,
+          filename: image.name,
+        ),
+      );
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['imageUrl']; // Restituisce il percorso leggero del file
+      } else {
+        print("Errore caricamento server: ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Errore di rete durante l'upload: $e");
+      return null;
+    }
+  }
+
   Future _cambiaFotoProfilo() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+          source: ImageSource.gallery, imageQuality: 75);
       if (image != null) {
-        final bytes = await image.readAsBytes();
-        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+        final String? imageUrl = await _uploadFileToServer(image);
+        if (imageUrl == null) return;
 
         setState(() {
-          profileImage = base64Image;
-          userPhotos.add(base64Image);
+          profileImage = imageUrl;
+          userPhotos.add(imageUrl);
           bachecaAttivita.insert(0, {
             "tipo": "foto",
             "testo": "Ha aggiornato la foto del profilo.",
-            "media": base64Image,
+            "media": imageUrl,
             "data": "Oggi"
           });
         });
@@ -942,18 +984,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future _cambiaCopertina() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+          source: ImageSource.gallery, imageQuality: 75);
       if (image != null) {
-        final bytes = await image.readAsBytes();
-        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+        final String? imageUrl = await _uploadFileToServer(image);
+        if (imageUrl == null) return;
 
         setState(() {
-          coverImage = base64Image;
-          userPhotos.add(base64Image);
+          coverImage = imageUrl;
+          userPhotos.add(imageUrl);
           bachecaAttivita.insert(0, {
             "tipo": "copertina",
             "testo": "Ha aggiornato l'immagine di copertina.",
-            "media": base64Image,
+            "media": imageUrl,
             "data": "Oggi"
           });
         });
@@ -976,17 +1019,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future _aggiungiStoriaOFile(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: source);
+      final XFile? image =
+          await _picker.pickImage(source: source, imageQuality: 75);
       if (image != null) {
-        final bytes = await image.readAsBytes();
-        final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
+        final String? imageUrl = await _uploadFileToServer(image);
+        if (imageUrl == null) return;
 
         setState(() {
-          userPhotos.add(base64Image);
+          userPhotos.add(imageUrl);
           bachecaAttivita.insert(0, {
             "tipo": "storia",
             "testo": "Ha pubblicato una nuova storia / foto.",
-            "media": base64Image,
+            "media": imageUrl,
             "data": "Oggi"
           });
         });
@@ -1066,6 +1110,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return Image.memory(
           bytes,
           fit: fit,
+          cacheWidth: 400, // Ottimizzazione caricamento leggero
           errorBuilder: (context, error, stackTrace) => Container(
             color: const Color(0xFF131B2E),
             child: const Center(child: Icon(Icons.image, color: Colors.grey)),
@@ -1082,6 +1127,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Image.network(
         path,
         fit: fit,
+        cacheWidth: 400, // Ottimizzazione caricamento leggero
         errorBuilder: (context, error, stackTrace) => Container(
           color: const Color(0xFF131B2E),
           child: const Center(child: Icon(Icons.image, color: Colors.grey)),
@@ -1091,6 +1137,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Image.file(
         File(path),
         fit: fit,
+        cacheWidth: 400, // Ottimizzazione caricamento leggero
         errorBuilder: (context, error, stackTrace) => Container(
           color: const Color(0xFF131B2E),
           child: const Center(child: Icon(Icons.image, color: Colors.grey)),
@@ -1154,6 +1201,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       : Image.asset(
                           'assets/images/welcome_banner.jpeg',
                           fit: BoxFit.cover,
+                          cacheWidth: 800, // Ottimizzazione caricamento leggero
                         ),
                 ),
                 Positioned(
@@ -1370,11 +1418,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               crossAxisSpacing: 8,
                               mainAxisSpacing: 8,
                             ),
-                            itemCount: userPhotos.length,
+                            itemCount: userPhotos
+                                .where((item) => item is String)
+                                .length,
                             itemBuilder: (context, index) {
+                              final List stringPhotos = userPhotos
+                                  .where((item) => item is String)
+                                  .cast()
+                                  .toList();
                               return ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: _buildImageWidget(userPhotos[index]),
+                                child: _buildImageWidget(stringPhotos[index]),
                               );
                             },
                           ),

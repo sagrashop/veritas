@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
 
 const app = express();
 
@@ -11,11 +13,36 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-// Connessione a MongoDB Atlas
+// Configurazione della cartella locale "uploads" per i file fisici
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+// Rende la cartella "uploads" accessibile pubblicamente via URL
+app.use('/uploads', express.static('uploads'));
+// Rotta per gestire l'upload dei file
+app.post('/api/upload-image', upload.single('image'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nessun file caricato' });
+        }
+        // Restituisce l'URL relativo del file salvato
+        const imageUrl = `/uploads/${req.file.filename}`;
+        res.json({ imageUrl });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});// Connessione a MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sagrashopcatania_db_user:852123max@veritas.hswxfes.mongodb.net/?appName=Veritas"
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("Connesso a MongoDB con successo![cite: 3]"))
+  .then(() => console.log("Connesso a MongoDB con successo!"))
   .catch(err => console.error("Errore di connessione a MongoDB:", err));
 
 // Schema Unificato Utente e Profilo
@@ -79,8 +106,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
-// 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 // 3. Aggiornamento Profilo + Sincronizzazione Automatica con la Bacheca Pubblica
 app.put("/api/user/profile", async (req, res) => {
   try {
@@ -181,6 +206,20 @@ app.get("/api/posts", async (req, res) => {
     res.status(200).json(posts);
   } catch (err) {
     res.status(500).json({ error: "Errore del server" });
+  }
+});
+
+// 7. Rotta dedicata per il caricamento file (predisposta per il futuro)
+app.post("/api/upload-image", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nessun file caricato" });
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({ url: fileUrl });
+  } catch (err) {
+    console.error("Errore upload immagine:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
