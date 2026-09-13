@@ -3,6 +3,12 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require('fs');
+
+// Crea la cartella 'uploads' se non esiste
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
 
 const app = express();
 
