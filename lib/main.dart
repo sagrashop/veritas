@@ -1127,322 +1127,340 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 200,
-                width: double.infinity,
-                child: coverImage != null && coverImage!.isNotEmpty
-                    ? _buildImageWidget(coverImage)
-                    : Image.asset(
-                        'assets/images/welcome_banner.jpeg',
-                        fit: BoxFit.cover,
-                      ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: CircleAvatar(
-                  backgroundColor: Colors.black54,
-                  radius: 18,
-                  child: IconButton(
-                    icon: const Icon(Icons.camera_alt,
-                        size: 18, color: Color(0xFFD4AF37)),
-                    tooltip: 'Cambia copertina',
-                    onPressed: _cambiaCopertina,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            isLoadingProfile = true;
+          });
+          // Inserisci qui la funzione che scarica i dati dal server per il profilo
+          // es: await fetchUserProfile();
+          setState(() {
+            isLoadingProfile = false;
+          });
+        },
+        child: ListView(
+          physics:
+              const AlwaysScrollableScrollPhysics(), // Fondamentale per far partire il trascinamento
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  child: coverImage != null && coverImage!.isNotEmpty
+                      ? _buildImageWidget(coverImage)
+                      : Image.asset(
+                          'assets/images/welcome_banner.jpeg',
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black54,
+                    radius: 18,
+                    child: IconButton(
+                      icon: const Icon(Icons.camera_alt,
+                          size: 18, color: Color(0xFFD4AF37)),
+                      tooltip: 'Cambia copertina',
+                      onPressed: _cambiaCopertina,
+                    ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: -50,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _cambiaFotoProfilo,
-                      child: CircleAvatar(
-                        radius: 55,
-                        backgroundColor: const Color(0xFFD4AF37),
-                        child: CircleAvatar(
-                          radius: 52,
-                          backgroundColor: const Color(0xFF131B2E),
-                          child:
-                              profileImage != null && profileImage!.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(52),
-                                      child: SizedBox.expand(
-                                        child: _buildImageWidget(profileImage),
-                                      ),
-                                    )
-                                  : const Icon(Icons.person,
-                                      size: 60, color: Color(0xFFD4AF37)),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
+                Positioned(
+                  bottom: -50,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: _cambiaFotoProfilo,
-                        child: const CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Color(0xFFD4AF37),
-                          child: Icon(Icons.camera_alt,
-                              size: 16, color: Colors.black),
+                        child: CircleAvatar(
+                          radius: 55,
+                          backgroundColor: const Color(0xFFD4AF37),
+                          child: CircleAvatar(
+                            radius: 52,
+                            backgroundColor: const Color(0xFF131B2E),
+                            child: profileImage != null &&
+                                    profileImage!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(52),
+                                    child: SizedBox.expand(
+                                      child: _buildImageWidget(profileImage),
+                                    ),
+                                  )
+                                : const Icon(Icons.person,
+                                    size: 60, color: Color(0xFFD4AF37)),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 60),
-          Center(
-            child: Text(
-              nickname,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              children: [
-                Text(
-                  bio,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white70, fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.work, size: 16, color: Color(0xFFD4AF37)),
-                    const SizedBox(width: 6),
-                    Text(lavoro, style: const TextStyle(color: Colors.white70)),
-                    const SizedBox(width: 16),
-                    const Icon(Icons.location_on,
-                        size: 16, color: Color(0xFFD4AF37)),
-                    const SizedBox(width: 6),
-                    Text(citta, style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF131B2E),
-                        side: const BorderSide(color: Color(0xFFD4AF37))),
-                    onPressed: _modificaDatiProfilo,
-                    icon: const Icon(Icons.edit, color: Color(0xFFD4AF37)),
-                    label: const Text("Modifica profilo",
-                        style: TextStyle(color: Color(0xFFD4AF37))),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF131B2E),
-                        side: const BorderSide(color: Color(0xFFD4AF37))),
-                    onPressed: _mostraSceltaMultimedia,
-                    icon:
-                        const Icon(Icons.add_circle, color: Color(0xFFD4AF37)),
-                    label: const Text("Aggiungi storia",
-                        style: TextStyle(color: Color(0xFFD4AF37))),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF131B2E),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: const Color(0xFFD4AF37).withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Dettagli personali",
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFD4AF37))),
-                    IconButton(
-                      icon: const Icon(Icons.edit,
-                          size: 18, color: Color(0xFFD4AF37)),
-                      onPressed: _modificaDatiProfilo,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(Icons.location_city,
-                        size: 18, color: Colors.grey),
-                    const SizedBox(width: 10),
-                    Text("Vive a $citta",
-                        style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.work_outline,
-                        size: 18, color: Colors.grey),
-                    const SizedBox(width: 10),
-                    Text("Lavora come $lavoro",
-                        style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildTabButton("Foto"),
-              _buildTabButton("Bacheca"),
-            ],
-          ),
-          const Divider(color: Colors.white24),
-          tabSelezionata == "Foto"
-              ? Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: userPhotos.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Text(
-                                "Nessuna foto caricata. Usa 'Aggiungi storia' per caricarne una!",
-                                style: TextStyle(color: Colors.grey)),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _cambiaFotoProfilo,
+                          child: const CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Color(0xFFD4AF37),
+                            child: Icon(Icons.camera_alt,
+                                size: 16, color: Colors.black),
                           ),
-                        )
-                      : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                          itemCount: userPhotos.length,
-                          itemBuilder: (context, index) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _buildImageWidget(userPhotos[index]),
-                            );
-                          },
                         ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: bachecaAttivita.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Text(
-                                "La bacheca è vuota. Qui apparirà la cronologia di tutto ciò che fai!",
-                                style: TextStyle(color: Colors.grey)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 60),
+            Center(
+              child: Text(
+                nickname,
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  Text(
+                    bio,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white70, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.work,
+                          size: 16, color: Color(0xFFD4AF37)),
+                      const SizedBox(width: 6),
+                      Text(lavoro,
+                          style: const TextStyle(color: Colors.white70)),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.location_on,
+                          size: 16, color: Color(0xFFD4AF37)),
+                      const SizedBox(width: 6),
+                      Text(citta,
+                          style: const TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF131B2E),
+                          side: const BorderSide(color: Color(0xFFD4AF37))),
+                      onPressed: _modificaDatiProfilo,
+                      icon: const Icon(Icons.edit, color: Color(0xFFD4AF37)),
+                      label: const Text("Modifica profilo",
+                          style: TextStyle(color: Color(0xFFD4AF37))),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF131B2E),
+                          side: const BorderSide(color: Color(0xFFD4AF37))),
+                      onPressed: _mostraSceltaMultimedia,
+                      icon: const Icon(Icons.add_circle,
+                          color: Color(0xFFD4AF37)),
+                      label: const Text("Aggiungi storia",
+                          style: TextStyle(color: Color(0xFFD4AF37))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF131B2E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Dettagli personali",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD4AF37))),
+                      IconButton(
+                        icon: const Icon(Icons.edit,
+                            size: 18, color: Color(0xFFD4AF37)),
+                        onPressed: _modificaDatiProfilo,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_city,
+                          size: 18, color: Colors.grey),
+                      const SizedBox(width: 10),
+                      Text("Vive a $citta",
+                          style: const TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.work_outline,
+                          size: 18, color: Colors.grey),
+                      const SizedBox(width: 10),
+                      Text("Lavora come $lavoro",
+                          style: const TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTabButton("Foto"),
+                _buildTabButton("Bacheca"),
+              ],
+            ),
+            const Divider(color: Colors.white24),
+            tabSelezionata == "Foto"
+                ? Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: userPhotos.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text(
+                                  "Nessuna foto caricata. Usa 'Aggiungi storia' per caricarne una!",
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                          )
+                        : GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: userPhotos.length,
+                            itemBuilder: (context, index) {
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: _buildImageWidget(userPhotos[index]),
+                              );
+                            },
                           ),
-                        )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: bachecaAttivita.length,
-                          itemBuilder: (context, index) {
-                            final item = bachecaAttivita[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF131B2E),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                    color: const Color(0xFFD4AF37)
-                                        .withValues(alpha: 0.2)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const CircleAvatar(
-                                        radius: 14,
-                                        backgroundColor: Color(0xFFD4AF37),
-                                        child: Icon(Icons.person,
-                                            size: 16, color: Colors.black),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        widget.userNickname,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            fontSize: 13),
-                                      ),
-                                      const Spacer(),
-                                      Text(
-                                        item['data'] ?? 'Oggi',
-                                        style: const TextStyle(
-                                            color: Colors.grey, fontSize: 11),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: bachecaAttivita.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text(
+                                  "La bacheca è vuota. Qui apparirà la cronologia di tutto ciò che fai!",
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: bachecaAttivita.length,
+                            itemBuilder: (context, index) {
+                              final item = bachecaAttivita[index];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131B2E),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: const Color(0xFFD4AF37)
+                                          .withValues(alpha: 0.2)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor: Color(0xFFD4AF37),
+                                          child: Icon(Icons.person,
+                                              size: 16, color: Colors.black),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          widget.userNickname,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              fontSize: 13),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          item['data'] ?? 'Oggi',
+                                          style: const TextStyle(
+                                              color: Colors.grey, fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      item['testo'] ?? '',
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 14),
+                                    ),
+                                    if (item['media'] != null &&
+                                        item['media'] != "") ...[
+                                      const SizedBox(height: 10),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: SizedBox(
+                                          height: 180,
+                                          width: double.infinity,
+                                          child:
+                                              _buildImageWidget(item['media']),
+                                        ),
                                       ),
                                     ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    item['testo'] ?? '',
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 14),
-                                  ),
-                                  if (item['media'] != null &&
-                                      item['media'] != "") ...[
-                                    const SizedBox(height: 10),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: SizedBox(
-                                        height: 180,
-                                        width: double.infinity,
-                                        child: _buildImageWidget(item['media']),
-                                      ),
-                                    ),
                                   ],
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-          const SizedBox(height: 20),
-        ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
