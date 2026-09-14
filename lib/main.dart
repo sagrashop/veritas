@@ -6,6 +6,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+String get baseUrl {
+  final currentUrl = Uri.base.toString();
+  if (currentUrl.contains("localhost") || currentUrl.contains("127.0.0.1")) {
+    return "http://localhost:3000/api";
+  } else {
+    return "https://veritas-3t1r.onrender.com/api";
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -62,7 +71,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
+
   bool isLoading = false;
 
   void _login() async {
@@ -266,7 +275,6 @@ class _RegisterScreenState extends State {
       TextEditingController();
   final TextEditingController _nameController = TextEditingController();
 
-  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   bool isLoading = false;
 
   void _register() async {
@@ -433,7 +441,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   List<Map<String, dynamic>> posts = [];
   bool isLoading = true;
   String? profileImage;
@@ -748,8 +755,6 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
-
   String bio = "La strada è la migliore scuola della vita";
   String citta = "Catania";
   String lavoro = "Imprenditore";
@@ -1563,7 +1568,7 @@ class CreatePostSheet extends StatefulWidget {
 
 class _CreatePostSheetState extends State<CreatePostSheet> {
   final TextEditingController _postController = TextEditingController();
-  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
+
   bool isPosting = false;
 
   Future _createPost() async {
