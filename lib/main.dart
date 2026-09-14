@@ -936,10 +936,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final String relativePath = data['imageUrl'];
+        final String imageUrl = data['imageUrl'];
+
+        // Se l'URL arriva già completo da Cloudinary (inizia con http), lo restituisce così com'è
+        if (imageUrl.startsWith('http')) {
+          return imageUrl;
+        }
+
+        // Altrimenti (per sicurezza con eventuali vecchi file locali) usa il vecchio metodo
         final String serverRoot = baseUrl.replaceAll('/api', '');
-        return serverRoot +
-            relativePath; // Restituisce il percorso leggero del file
+        return serverRoot + imageUrl;
       } else {
         print("Errore caricamento server: ${response.body}");
         return null;
