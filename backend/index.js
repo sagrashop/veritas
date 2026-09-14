@@ -5,10 +5,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require('fs');
 
-// Crea la cartella 'uploads' se non esiste
-if (!fs.existsSync('uploads')) {
-    fs.mkdirSync('uploads');
-}
+// Importazione Cloudinary e Multer Storage Cloudinary
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 
@@ -24,33 +23,31 @@ app.options('*', cors()); // Abilita le richieste preflight per tutte le rotte
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-// Rende la cartella "uploads" accessibile pubblicamente via URL
-// Rende la cartella "uploads" accessibile pubblicamente forzando l'header CORS direttamente nel file server
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-    setHeaders: (res, path, stat) => {
-        res.set('Access-Control-Allow-Origin', '*');
-    }
-}));
-// Configurazione corretta di Multer (mantiene l'estensione originale del file)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+// CONFIGURAZIONE CLOUDINARY (Sostituisci con le tue chiavi del pannello Cloudinary)
+cloudinary.config({
+  cloud_name: 's5gpber7',
+  api_key: '543138988688446',
+  api_secret: '-mayrtX6EPXllsxOmYGl1LjEJbg'
+});
+
+// Configurazione di Multer tramite Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'veritas_uploads', // Nome della cartella che si creerà nel tuo Cloudinary
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
 });
 const upload = multer({ storage: storage });
 
-// UNICA ROTTA UFFICIALE per l'upload delle immagini
+// UNICA ROTTA UFFICIALE per l'upload delle immagini su Cloudinary
 app.post('/api/upload-image', upload.single('image'), (req, res) => {
     try {
-        if (!req.file) {
+        if (!req.file || !req.file.path) {
             return res.status(400).json({ error: 'Nessun file caricato' });
         }
-        // Restituisce la chiave esatta che si aspetta Flutter (imageUrl)
-        const imageUrl = `/uploads/${req.file.filename}`;
+        // Restituisce l'URL HTTPS definitivo di Cloudinary che Flutter si aspetta (imageUrl)
+        const imageUrl = req.file.path;
         res.status(200).json({ imageUrl });
     } catch (error) {
         console.error("Errore upload immagine:", error);
