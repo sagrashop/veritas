@@ -720,14 +720,13 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ],
                               ),
-                             (post['media'] != null && post['media'].toString().isNotEmpty)
-    ? Padding(
-        padding: const EdgeInsets.only(top: 8.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: _buildImageWidget(post['media']),
-        ),
-      )
+                             (post['media'] != null && post['media'].toString().isNotEmpty) ? Padding(
+  padding: const EdgeInsets.only(top: 8.0),
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(12),
+    child: _buildImageWidget(post['media']),
+  ),
+)
     : Text(
         post['content'] ?? '',
         style: const TextStyle(
