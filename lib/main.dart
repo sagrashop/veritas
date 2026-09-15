@@ -721,16 +721,17 @@ class _FeedScreenState extends State<FeedScreen> {
                                 ],
                               ),
                              // Controlla se il content è un'immagine (contiene cloudinary o .jpg/.png) oppure un testo normale
-      (post['content'] != null && 
-       (post['content'].toString().contains('cloudinary') || 
-        post['content'].toString().endsWith('.jpg') || 
-        post['content'].toString().endsWith('.png') || 
-        post['content'].toString().endsWith('.webp')))
+      // Controlla se c'è un'immagine valida nel campo content OPPURE nelle chiavi imageUrl/media
+      ((post['content'] != null && (post['content'].toString().contains('cloudinary') || post['content'].toString().endsWith('.jpg') || post['content'].toString().endsWith('.png') || post['content'].toString().endsWith('.webp'))) ||
+       (post['imageUrl'] != null && post['imageUrl'].toString().trim().isNotEmpty) ||
+       (post['media'] != null && post['media'].toString().trim().isNotEmpty))
           ? Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _buildImageWidget(post['content']),
+                child: _buildImageWidget(
+                  post['imageUrl'] ?? post['media'] ?? post['content']
+                ),
               ),
             )
           : Text(
