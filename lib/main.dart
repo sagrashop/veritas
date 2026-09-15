@@ -720,21 +720,26 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ],
                               ),
-                             (post['media'] != null && post['media'].toString().trim().isNotEmpty)
-    ? Padding(
-        padding: const EdgeInsets.only(top: 8.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: _buildImageWidget(post['media']),
-        ),
-      )
-    : Text(
-        post['content'] ?? '',
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 15,
-        ),
-      ),
+                             // Controlla se il content è un'immagine (contiene cloudinary o .jpg/.png) oppure un testo normale
+      (post['content'] != null && 
+       (post['content'].toString().contains('cloudinary') || 
+        post['content'].toString().endsWith('.jpg') || 
+        post['content'].toString().endsWith('.png') || 
+        post['content'].toString().endsWith('.webp')))
+          ? Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildImageWidget(post['content']),
+              ),
+            )
+          : Text(
+              post['content'] ?? '',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+              ),
+            ),
                             ],
                           ),
                         );
