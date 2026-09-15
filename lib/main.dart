@@ -1189,21 +1189,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {
-            isLoadingProfile = true;
-          });
-          // Inserisci qui la funzione che scarica i dati dal server per il profilo
-          // es: await fetchUserProfile();
-          setState(() {
-            isLoadingProfile = false;
-          });
-        },
-        child: ListView(
-          physics:
-              const AlwaysScrollableScrollPhysics(), // Fondamentale per far partire il trascinamento
-          children: [
-            Stack(
+  onRefresh: () async {
+    await _fetchUserProfile();
+  }, // <-- Rimane solo questa chiusura pulita
+  child: ListView(
+    physics:
+        const AlwaysScrollableScrollPhysics(),
+    children: [
+      Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
