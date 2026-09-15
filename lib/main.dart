@@ -6,15 +6,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-String get baseUrl {
-  final currentUrl = Uri.base.toString();
-  if (currentUrl.contains("localhost") || currentUrl.contains("127.0.0.1")) {
-    return "http://localhost:3000/api";
-  } else {
-    return "https://veritas-3t1r.onrender.com/api";
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -71,7 +62,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   bool isLoading = false;
 
   void _login() async {
@@ -275,6 +266,7 @@ class _RegisterScreenState extends State {
       TextEditingController();
   final TextEditingController _nameController = TextEditingController();
 
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   bool isLoading = false;
 
   void _register() async {
@@ -441,6 +433,7 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   List<Map<String, dynamic>> posts = [];
   bool isLoading = true;
   String? profileImage;
@@ -720,27 +713,12 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ],
                               ),
-                             // Controlla se il content è un'immagine (contiene cloudinary o .jpg/.png) oppure un testo normale
-      // Controlla se c'è un'immagine valida nel campo content OPPURE nelle chiavi imageUrl/media
-      ((post['content'] != null && (post['content'].toString().contains('cloudinary') || post['content'].toString().endsWith('.jpg') || post['content'].toString().endsWith('.png') || post['content'].toString().endsWith('.webp'))) ||
-       (post['imageUrl'] != null && post['imageUrl'].toString().trim().isNotEmpty) ||
-       (post['media'] != null && post['media'].toString().trim().isNotEmpty))
-          ? Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildImageWidget(
-                  post['imageUrl'] ?? post['media'] ?? post['content']
-                ),
-              ),
-            )
-          : Text(
-              post['content'] ?? '',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-              ),
-            ),
+                              const SizedBox(height: 10),
+                              Text(
+                                post['content'] ?? '',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 15),
+                              ),
                             ],
                           ),
                         );
@@ -770,6 +748,8 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
+
   String bio = "La strada è la migliore scuola della vita";
   String citta = "Catania";
   String lavoro = "Imprenditore";
@@ -1204,14 +1184,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
       body: RefreshIndicator(
-  onRefresh: () async {
-    await _fetchUserProfile();
-  }, // <-- Rimane solo questa chiusura pulita
-  child: ListView(
-    physics:
-        const AlwaysScrollableScrollPhysics(),
-    children: [
-      Stack(
+        onRefresh: () async {
+          await _fetchUserProfile(); // Ricarica i dati del profilo quando trascini verso il basso
+        },
+        child: ListView(
+          physics:
+              const AlwaysScrollableScrollPhysics(), // Fondamentale per far partire il trascinamento
+          children: [
+            Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
@@ -1576,7 +1556,7 @@ class CreatePostSheet extends StatefulWidget {
 
 class _CreatePostSheetState extends State<CreatePostSheet> {
   final TextEditingController _postController = TextEditingController();
-
+  final String baseUrl = "https://veritas-3t1r.onrender.com/api";
   bool isPosting = false;
 
   Future _createPost() async {
