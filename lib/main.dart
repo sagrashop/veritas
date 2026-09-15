@@ -924,11 +924,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       var bytes = await image.readAsBytes();
       request.files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          bytes,
-          filename: image.name,
-        ),
+        http.MultipartFile.fromBytes('image', bytes, filename: image.name),
       );
 
       var streamedResponse = await request.send();
@@ -938,12 +934,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final data = jsonDecode(response.body);
         final String imageUrl = data['imageUrl'];
 
-        // Se l'URL arriva già completo da Cloudinary (inizia con http), lo restituisce così com'è
+        // Se l'URL arriva già completo (es. Cloudinary), lo restituisce così com'è
         if (imageUrl.startsWith('http')) {
           return imageUrl;
         }
 
-        // Altrimenti (per sicurezza con eventuali vecchi file locali) usa il vecchio metodo
+        // Altrimenti compone l'URL del server locale
         final String serverRoot = baseUrl.replaceAll('/api', '');
         return serverRoot + imageUrl;
       } else {
@@ -1557,7 +1553,35 @@ class CreatePostSheet extends StatefulWidget {
 class _CreatePostSheetState extends State<CreatePostSheet> {
   final TextEditingController _postController = TextEditingController();
   final String baseUrl = "https://veritas-3t1r.onrender.com/api";
+  late final ImagePicker _picker = ImagePicker();
+  String? mediaUrl; // Per salvare l'URL dell'immagine o video caricato
+  bool isUploading = false;
   bool isPosting = false;
+
+  Future _uploadFileToServer(XFile image) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$baseUrl/upload-image"),
+      );
+
+      var bytes = await image.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: image.name),
+      );
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['url'] ?? data['imageUrl'];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   Future _createPost() async {
     final content = _postController.text.trim();
@@ -1574,7 +1598,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
           "authorNickname": widget.userNickname,
           "authorImage": "assets/images/logo.png",
           "content": content,
-          "media": "",
+          "media": mediaUrl ?? "",
         }),
       );
 
@@ -1625,6 +1649,66 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
           ),
           const Divider(color: Colors.white24),
           const SizedBox(height: 8),
+
+          // 1. PULSANTE PER ALLEGARE IMMAGINE
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.image, color: Color(0xFFD4AF37)),
+                onPressed: () async {
+                  final XFile? image = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 75,
+                  );
+                  if (image != null) {
+                    setState(() => isUploading = true);
+                    final String? url = await _uploadFileToServer(image);
+                    setState(() {
+                      mediaUrl = url;
+                      isUploading = false;
+                    });
+                  }
+                },
+              ),
+              const Text("Allega immagine",
+                  style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+
+          // 2. ANTEPRIMA DELL'IMMAGINE O CARICAMENTO IN CORSO
+          if (isUploading)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+              ),
+            )
+          else if (mediaUrl != null && mediaUrl!.isNotEmpty)
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(mediaUrl!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () => setState(() => mediaUrl = null),
+                ),
+              ],
+            ),
+
+          const SizedBox(height: 8),
+
+          // 3. CAMPO DI TESTO ESISTENTE
           Container(
             height: 180,
             padding: const EdgeInsets.all(12),
