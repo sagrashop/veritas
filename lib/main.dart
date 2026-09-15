@@ -1567,7 +1567,7 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
 
       var bytes = await image.readAsBytes();
       request.files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: image.name),
+        http.MultipartFile.fromBytes('image', bytes, filename: image.name),
       );
 
       var streamedResponse = await request.send();
